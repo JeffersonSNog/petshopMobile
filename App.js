@@ -6,6 +6,7 @@ import { PetsProvider } from './src/contexts/PetsContext';
 import useSession from './src/hooks/useSession';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import { HomeScreen } from './src/screens/HomeScreen';
 
 function AppContent() {
   const { isAuthenticated, loading, user, logout } = useSession();
@@ -27,13 +28,17 @@ function AppContent() {
     return <LoginScreen showRegister={() => setCurrentScreen('register')} />;
   }
 
-  // Logged-in screen (Tinder swipe deck placeholder)
+  return <HomeScreen></HomeScreen>;
+
+  {``` Logged-in screen (Tinder swipe deck placeholder)
   return (
+  
+  
     <View style={styles.container}>
       <Text style={styles.logoEmoji}>🐾</Text>
       <Text style={styles.title}>Tinder for Pets</Text>
       <Text style={styles.welcomeText}>Welcome, {user?.name || 'Friend'}!</Text>
-      
+    
       {/* Swipe deck placeholder */}
       <View style={styles.swipeCardPlaceholder}>
         <Text style={styles.swipeCardText}>Swipe cards interface coming soon!</Text>
@@ -44,7 +49,7 @@ function AppContent() {
       </Pressable>
       <StatusBar style="auto" />
     </View>
-  );
+  );```}
 }
 
 export default function App() {
