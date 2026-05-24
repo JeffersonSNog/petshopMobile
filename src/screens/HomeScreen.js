@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   Pressable
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ProfileScreen from './ProfileScreen';
 
 const pet_categories = [
   {
@@ -60,129 +61,148 @@ const pets = [
 ];
 
 export function HomeScreen() {
+  const [activeTab, setActiveTab] = useState('home');
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hi, Justine 👋🏻</Text>
-            <Text style={styles.subtitle}>Good morning</Text>
-          </View>
-
-          <Pressable style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" style={styles.notificationIcon}/>
-          </Pressable>
-        </View>
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search" style={styles.searchIcon}/>
-          
-            <TextInput
-              placeholder="Search by breed, size, or name"
-              placeholderTextColor="#9B9B9B"
-              style={styles.searchInput}
-            />
-          </View>
-
-          <Pressable style={styles.filterButton}>
-            <Ionicons name="options-outline" style={styles.filterIcon}/>
-          </Pressable>
-        </View>
-
-        {/* Categories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          {pet_categories.map((item) => (
-            <Pressable
-              key={item.id}
-              style={[
-                styles.categoryCard,
-                item.active && styles.categoryCardActive,
-              ]}
-            >
-              <Text style={styles.categoryEmoji}>{item.emoji}</Text>
-              <Text
-                style={[
-                  styles.categoryText,
-                  item.active && styles.categoryTextActive,
-                ]}
-              >
-                {item.title}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {/* Pet Cards */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardsContainer}
-        >
-          {pets.map((pet) => (
-            <View key={pet.id} style={styles.petCard}>
-
-              <View style={styles.petInfoTop}>
-                <View>
-                  <Text style={styles.sectionTitle}>Distance</Text>
-                  <Text style={styles.sectionSubtitle}>{pet.distance}</Text>
-                </View>
-
-                <View>
-                  <Text style={styles.sectionTitle}>Tags</Text>
-                  <Text style={styles.tagText}>Quiet</Text>
-                  <Text style={styles.tagText}>Snuggly</Text>
-                  <Text style={styles.tagText}>Indoor</Text>
-                </View>
+        {activeTab === 'home' ? (
+          <>
+            {/* Header */}
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.greeting}>Hi, Justine 👋🏻</Text>
+                <Text style={styles.subtitle}>Good morning</Text>
               </View>
 
-              <View style={styles.imageWrapper}>
-                <View style={styles.imageBackground} />
+              <Pressable style={styles.notificationButton}>
+                <Ionicons name="notifications-outline" style={styles.notificationIcon}/>
+              </Pressable>
+            </View>
 
-                <Image
-                  source={{ uri: pet.image }}
-                  style={styles.petImage}
+            {/* Search */}
+            <View style={styles.searchContainer}>
+              <View style={styles.searchInputContainer}>
+                <Ionicons name="search" style={styles.searchIcon}/>
+              
+                <TextInput
+                  placeholder="Search by breed, size, or name"
+                  placeholderTextColor="#9B9B9B"
+                  style={styles.searchInput}
                 />
               </View>
 
-              <View style={styles.petFooter}>
-                <View>
-                  <Text style={styles.petName}>{pet.name}</Text>
-                  <Text style={styles.petBreed}>{pet.breed}</Text>
-                </View>
-
-                <Text style={styles.petPrice}>{pet.price}</Text>
-              </View>
+              <Pressable style={styles.filterButton}>
+                <Ionicons name="options-outline" style={styles.filterIcon}/>
+              </Pressable>
             </View>
-          ))}
-        </ScrollView>
+
+            {/* Categories */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {pet_categories.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={[
+                    styles.categoryCard,
+                    item.active && styles.categoryCardActive,
+                  ]}
+                >
+                  <Text style={styles.categoryEmoji}>{item.emoji}</Text>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      item.active && styles.categoryTextActive,
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Pet Cards */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cardsContainer}
+            >
+              {pets.map((pet) => (
+                <View key={pet.id} style={styles.petCard}>
+
+                  <View style={styles.petInfoTop}>
+                    <View>
+                      <Text style={styles.sectionTitle}>Distance</Text>
+                      <Text style={styles.sectionSubtitle}>{pet.distance}</Text>
+                    </View>
+
+                    <View>
+                      <Text style={styles.sectionTitle}>Tags</Text>
+                      <Text style={styles.tagText}>Quiet</Text>
+                      <Text style={styles.tagText}>Snuggly</Text>
+                      <Text style={styles.tagText}>Indoor</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.imageWrapper}>
+                    <View style={styles.imageBackground} />
+
+                    <Image
+                      source={{ uri: pet.image }}
+                      style={styles.petImage}
+                    />
+                  </View>
+
+                  <View style={styles.petFooter}>
+                    <View>
+                      <Text style={styles.petName}>{pet.name}</Text>
+                      <Text style={styles.petBreed}>{pet.breed}</Text>
+                    </View>
+
+                    <Text style={styles.petPrice}>{pet.price}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        ) : activeTab === 'profile' ? (
+          <ProfileScreen />
+        ) : null}
 
         {/* Bottom Navigation */}
         <View style={styles.bottomNavigation}>
-          <Pressable style={[styles.navButton, styles.navButtonActive]}>
-            <Ionicons name="home-outline" size={25}/>
+          <Pressable 
+            onPress={() => setActiveTab('home')} 
+            style={[styles.navButton, activeTab === 'home' && styles.navButtonActive]}
+          >
+            <Ionicons name="home-outline" size={25} color={activeTab === 'home' ? '#FFFFFF' : '#2D2D2D'}/>
           </Pressable>
 
-          <Pressable style={styles.navButton}>
-            <Ionicons name="heart-outline" size={25}/>
+          <Pressable 
+            onPress={() => setActiveTab('favorites')} 
+            style={[styles.navButton, activeTab === 'favorites' && styles.navButtonActive]}
+          >
+            <Ionicons name="heart-outline" size={25} color={activeTab === 'favorites' ? '#FFFFFF' : '#2D2D2D'}/>
           </Pressable>
 
-          <Pressable style={styles.navButton}>
-            <Ionicons name="chatbubble-ellipses-outline" size={25}/>
+          <Pressable 
+            onPress={() => setActiveTab('messages')} 
+            style={[styles.navButton, activeTab === 'messages' && styles.navButtonActive]}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={25} color={activeTab === 'messages' ? '#FFFFFF' : '#2D2D2D'}/>
           </Pressable>
 
-          <Pressable style={styles.navButton}>
-            <Ionicons name="person-outline" size={25}/>
+          <Pressable 
+            onPress={() => setActiveTab('profile')} 
+            style={[styles.navButton, activeTab === 'profile' && styles.navButtonActive]}
+          >
+            <Ionicons name="person-outline" size={25} color={activeTab === 'profile' ? '#FFFFFF' : '#2D2D2D'}/>
           </Pressable>
         </View>
-
       </View>
     </SafeAreaView>
   );
