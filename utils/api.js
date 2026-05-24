@@ -216,28 +216,28 @@ class ApiService {
     });
   }
 
-  // GET /adoption/myadoptions
+  // GET /pet/myadoptions
   // Get all adoptions requested or concluded by the currently logged-in user
   async getMyAdoptions(options = {}) {
-    return this._request("/adoption/myadoptions", {
+    return this._request("/pet/myadoptions", {
       method: "GET",
       ...options,
     });
   }
 
-  // PATCH /adoption/schedule/{id}
+  // PATCH /pet/schedule/{id}
   // Schedule a visit/adoption process for a pet by ID
   async scheduleAdoption(id, options = {}) {
-    return this._request(`/adoption/schedule/${id}`, {
+    return this._request(`/pet/schedule/${id}`, {
       method: "PATCH",
       ...options,
     });
   }
 
-  // PATCH /adoption/conclude/{id}
+  // PATCH /pet/conclude/{id}
   // Conclude the adoption process of a pet by ID
   async concludeAdoption(id, options = {}) {
-    return this._request(`/adoption/conclude/${id}`, {
+    return this._request(`/pet/conclude/${id}`, {
       method: "PATCH",
       ...options,
     });
