@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProfileScreen from './ProfileScreen';
+import { PetDetailScreen } from './PetDetailScreen';
  
 const pet_categories = [
   { id: 1, title: 'Dog',   emoji: '🐶', active: false },
@@ -57,6 +58,7 @@ export function HomeScreen() {
   const [form, setForm]             = useState(EMPTY_FORM);
   const [sending, setSending]       = useState(false);
   const [formError, setFormError]   = useState('');
+  const [selectedPetId, setSelectedPetId] = useState(null);
  
   // ── #22 + #23: add pet form & send to backend ──────────────────────────────
   const handleOpenForm = () => {
@@ -116,6 +118,16 @@ export function HomeScreen() {
     );
   };
  
+  // ── Navegar para detalhe do pet ───────────────────────────────────────────
+  if (selectedPetId) {
+    return (
+      <PetDetailScreen
+        petId={"6750a42fc0f32c7550898d39"}
+        onBack={() => setSelectedPetId(null)}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -174,7 +186,11 @@ export function HomeScreen() {
               contentContainerStyle={styles.cardsContainer}
             >
               {pets.map((pet) => (
-                <View key={pet.id} style={styles.petCard}>
+                <Pressable
+                  key={pet.id}
+                  style={styles.petCard}
+                  onPress={() => setSelectedPetId(String(pet.id))}
+                >
  
                   <View style={styles.petInfoTop}>
                     <View>
@@ -212,7 +228,7 @@ export function HomeScreen() {
                     <Text style={styles.petPrice}>{pet.price}</Text>
                   </View>
  
-                </View>
+                </Pressable>
               ))}
  
               {/* #22 – card para adicionar novo pet */}
