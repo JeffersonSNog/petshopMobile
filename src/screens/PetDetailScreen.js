@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Dimensions,
+  Alert,
 } from 'react-native';
+
+import api from '../../utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_HEIGHT = 300;
@@ -26,6 +29,26 @@ export function PetDetailScreen({ petId, onBack }) {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
   const [currentImage, setCurrentImage] = useState(0);
+
+  const handleAdoption = async () => {
+    try {
+      await api.scheduleAdoption(petId);
+
+      Alert.alert(
+      "Adoção solicitada",
+      "Sua solicitação foi enviada com sucesso!"
+    );
+
+    } catch (err) {
+      console.log(err);
+
+      Alert.alert(
+        "Não foi possível adotar",
+        err.message || "Tente novamente mais tarde."
+      );
+    };
+  };
+ 
 
   // ─── Buscar pet ──────────────────────────────────────────────────────────────
   const fetchPet = useCallback(async () => {
@@ -93,6 +116,10 @@ export function PetDetailScreen({ petId, onBack }) {
     : categoryImage ? [categoryImage] : [];
   const hasImage = images.length > 0;
   const gender   = genderLabel(pet.gender);
+  const isAdopted = pet?.adopter != null;
+  const petStatusText = isAdopted 
+  ? '🔴 Adoção solicitada'
+  : '🟢 Disponível';
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -169,6 +196,16 @@ export function PetDetailScreen({ petId, onBack }) {
             {gender && <Text style={styles.petGender}>{gender}</Text>}
           </View>
 
+          <Text
+            style={{
+              color: isAdopted ? '#E53935' : '#28A745',
+              fontWeight: '700',
+              marginBottom: 10,
+            }}
+            >
+            {petStatusText}
+          </Text>
+
           {/* Raça */}
           {pet.breed ? (
             <Text style={styles.petBreed}>{pet.breed}</Text>
@@ -229,12 +266,19 @@ export function PetDetailScreen({ petId, onBack }) {
       {/* ── Botão Adotar ── */}
       <View style={styles.footer}>
         <Pressable
+          disabled={isAdopted}
+          onPress={handleAdoption}
           style={({ pressed }) => [
             styles.adoptButton,
-            pressed && styles.adoptButtonPressed,
+            isAdopted && { opacity: 0.6 },
+            pressed && !isAdopted && styles.adoptButtonPressed,
           ]}
         >
-          <Text style={styles.adoptButtonText}>🐾 Adotar pet</Text>
+          <Text style={styles.adoptButtonText}>
+            {isAdopted
+            ? '✅ Adoção solicitada'
+            : '🐾 Adotar pet'}
+            </Text>
         </Pressable>
       </View>
 
