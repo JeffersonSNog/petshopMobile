@@ -66,7 +66,7 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
     if (showLoader) setLoadingAdoptions(true);
     try {
       const data = await api.getMyAdoptions();
-      setMyAdoptions(Array.isArray(data) ? data : []);
+      setMyAdoptions(Array.isArray(data.pets) ? data.pets : []);
     } catch (err) {
       console.error('Erro ao buscar minhas adoções:', err);
       throw err;
@@ -101,10 +101,17 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
   };
 
   const resolvePet = (item) => {
-    if (activeSection === 'myadoptions' && item.pet && typeof item.pet === 'object') {
-      return { pet: item.pet, status: item.status || 'pending' };
-    }
-    return { pet: item, status: item.available !== false ? 'available' : 'unavailable' };
+    if (activeSection === 'myadoptions') {
+      return { 
+        pet: item,
+         status: 'pending',
+    };
+  }
+
+  return {
+     pet: item,
+     status: item.available !== false ? 'available' : 'unavailable' 
+    };
   };
 
   const resolveImage = (pet) => {
