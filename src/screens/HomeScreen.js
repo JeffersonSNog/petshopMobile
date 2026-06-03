@@ -44,12 +44,19 @@ const INITIAL_PETS = [
   },
 ];
  
-// ─── Simulated backend ───────────────────────────────────────────────────────
-const fakePostPet = (pet) =>
-  new Promise((resolve) => setTimeout(() => resolve({ ok: true, id: pet._id }), 1400));
- 
 // ─── Empty-form state ─────────────────────────────────────────────────────────
-const EMPTY_FORM = { name: '', breed: '', image: '' };
+const EMPTY_FORM = {
+  name:      '',
+  breed:     '',
+  gender:    'male',   // 'male' | 'female'
+  age:       '',
+  weight:    '',
+  color:     '',
+  story:     '',
+  available: true,
+  category:  '',       // _id da categoria
+  image:     '',
+};
  
 export function HomeScreen() {
   const [activeTab, setActiveTab]   = useState('home');
@@ -128,29 +135,40 @@ export function HomeScreen() {
   };
  
   const handleSubmitPet = async () => {
-    if (!form.name.trim() || !form.breed.trim()) {
-      setFormError('Por favor, preencha nome e raça.');
-      return;
-    }
- 
-    const newPet = {
-      id: Date.now(),
-      name: form.name.trim(),
-      breed: form.breed.trim(),
-      image:
-        form.image.trim() ||
-        'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?q=80&w=800&auto=format&fit=crop',
-      isOwn: true,
+    // Validação dos campos obrigatórios pela API
+    if (!form.name.trim())     { setFormError('Preencha o nome do animal.');       return; }
+    if (!form.breed.trim())    { setFormError('Preencha a raça.');                 return; }
+    if (!form.color.trim())    { setFormError('Preencha a cor.');                  return; }
+    if (!form.age.trim())      { setFormError('Preencha a idade.');                return; }
+    if (!form.weight.trim())   { setFormError('Preencha o peso.');                 return; }
+    if (!form.category.trim()) { setFormError('Selecione uma categoria.');         return; }
+
+    const payload = {
+      name:      form.name.trim(),
+      breed:     form.breed.trim(),
+      gender:    form.gender,
+      age:       Number(form.age),
+      weight:    Number(form.weight),
+      color:     form.color.trim(),
+      story:     form.story.trim(),
+      available: form.available,
+      category:  form.category.trim(),
+      ...(form.image.trim() ? { images: [form.image.trim()] } : {}),
     };
- 
+
     setSending(true);
     setFormError('');
     try {
-      await fakePostPet(newPet);
-      setPets((prev) => [...prev, newPet]);
+      const response = await api.createPet(payload);
+      // Adiciona o pet retornado pela API na lista local
+      const created = response?.pet || response;
+      if (created) {
+        setPets((prev) => [...prev, { ...created, isOwn: true }]);
+      }
       setModalVisible(false);
-    } catch {
-      setFormError('Erro ao enviar. Tente novamente.');
+      Alert.alert('🐾 Pet cadastrado!', `${payload.name} foi adicionado com sucesso.`);
+    } catch (err) {
+      setFormError(err.message || 'Erro ao cadastrar. Tente novamente.');
     } finally {
       setSending(false);
     }
@@ -346,24 +364,159 @@ export function HomeScreen() {
             </View>
  
             <ScrollView showsVerticalScrollIndicator={false}>
-              {[
-                { field: 'name',     label: 'Nome *',            placeholder: 'Ex: Luna' },
-                { field: 'breed',    label: 'Raça / detalhes *', placeholder: 'Ex: Persa · Adulto · Fêmea' },
-                { field: 'image',    label: 'URL da imagem',     placeholder: 'https://...' },
-              ].map(({ field, label, placeholder }) => (
-                <View key={field} style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>{label}</Text>
+
+              {/* Nome */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Nome *</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="Ex: Luna"
+                  placeholderTextColor="#BBBBBB"
+                  value={form.name}
+                  onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+                />
+              </View>
+
+              {/* Raça */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Raça *</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="Ex: Persa, Vira-lata"
+                  placeholderTextColor="#BBBBBB"
+                  value={form.breed}
+                  onChangeText={(v) => setForm((f) => ({ ...f, breed: v }))}
+                />
+              </View>
+
+              {/* Gênero */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Gênero *</Text>
+                <View style={styles.toggleRow}>
+                  {['male', 'female'].map((g) => (
+                    <Pressable
+                      key={g}
+                      style={[styles.toggleBtn, form.gender === g && styles.toggleBtnActive]}
+                      onPress={() => setForm((f) => ({ ...f, gender: g }))}
+                    >
+                      <Text style={[styles.toggleBtnText, form.gender === g && styles.toggleBtnTextActive]}>
+                        {g === 'male' ? '♂ Macho' : '♀ Fêmea'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* Idade e Peso lado a lado */}
+              <View style={styles.rowFields}>
+                <View style={[styles.fieldGroup, { flex: 1, marginRight: 10 }]}>
+                  <Text style={styles.fieldLabel}>Idade * (anos)</Text>
                   <TextInput
                     style={styles.fieldInput}
-                    placeholder={placeholder}
+                    placeholder="Ex: 3"
                     placeholderTextColor="#BBBBBB"
-                    value={form[field]}
-                    onChangeText={(v) => setForm((f) => ({ ...f, [field]: v }))}
-                    autoCapitalize="none"
+                    keyboardType="numeric"
+                    value={form.age}
+                    onChangeText={(v) => setForm((f) => ({ ...f, age: v }))}
                   />
                 </View>
-              ))}
- 
+                <View style={[styles.fieldGroup, { flex: 1 }]}>
+                  <Text style={styles.fieldLabel}>Peso * (kg)</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    placeholder="Ex: 4.5"
+                    placeholderTextColor="#BBBBBB"
+                    keyboardType="numeric"
+                    value={form.weight}
+                    onChangeText={(v) => setForm((f) => ({ ...f, weight: v }))}
+                  />
+                </View>
+              </View>
+
+              {/* Cor */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Cor *</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="Ex: Caramelo, Preto e branco"
+                  placeholderTextColor="#BBBBBB"
+                  value={form.color}
+                  onChangeText={(v) => setForm((f) => ({ ...f, color: v }))}
+                />
+              </View>
+
+              {/* Categoria */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Categoria * (selecione abaixo)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
+                  {categories.map((cat) => (
+                    <Pressable
+                      key={cat.id}
+                      style={[styles.catChip, form.category === cat.id && styles.catChipActive]}
+                      onPress={() => setForm((f) => ({ ...f, category: cat.id }))}
+                    >
+                      <Text style={[styles.catChipText, form.category === cat.id && styles.catChipTextActive]}>
+                        {cat.emoji} {cat.title}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Imagem */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>URL da imagem</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  placeholder="https://exemplo.com/foto.jpg"
+                  placeholderTextColor="#BBBBBB"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  value={form.image}
+                  onChangeText={(v) => setForm((f) => ({ ...f, image: v }))}
+                />
+                {!!form.image.trim() && (
+                  <Image
+                    source={{ uri: form.image.trim() }}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                )}
+              </View>
+
+              {/* História */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>História do pet</Text>
+                <TextInput
+                  style={[styles.fieldInput, styles.fieldInputMultiline]}
+                  placeholder="Conte um pouco sobre o pet..."
+                  placeholderTextColor="#BBBBBB"
+                  multiline
+                  numberOfLines={3}
+                  value={form.story}
+                  onChangeText={(v) => setForm((f) => ({ ...f, story: v }))}
+                />
+              </View>
+
+              {/* Disponível */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Disponível para adoção?</Text>
+                <View style={styles.toggleRow}>
+                  {[true, false].map((val) => (
+                    <Pressable
+                      key={String(val)}
+                      style={[styles.toggleBtn, form.available === val && styles.toggleBtnActive]}
+                      onPress={() => setForm((f) => ({ ...f, available: val }))}
+                    >
+                      <Text style={[styles.toggleBtnText, form.available === val && styles.toggleBtnTextActive]}>
+                        {val ? '✓ Sim' : '✗ Não'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
               {!!formError && <Text style={styles.formError}>{formError}</Text>}
  
               <Pressable
@@ -376,7 +529,7 @@ export function HomeScreen() {
                 ) : (
                   <>
                     <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.submitButtonText}>Enviar para o backend</Text>
+                    <Text style={styles.submitButtonText}>Cadastrar pet</Text>
                   </>
                 )}
               </Pressable>
@@ -503,4 +656,29 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+
+  // ── Gênero / disponível toggle ────────────────────────────────────────────
+  toggleRow:           { flexDirection: 'row', gap: 10 },
+  toggleBtn:           { flex: 1, height: 44, borderRadius: 10, borderWidth: 1.5, borderColor: '#DDD', justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' },
+  toggleBtnActive:     { backgroundColor: '#F4A940', borderColor: '#F4A940' },
+  toggleBtnText:       { fontSize: 14, fontWeight: '600', color: '#666' },
+  toggleBtnTextActive: { color: '#FFF' },
+
+  // ── Categoria chips ────────────────────────────────────────────────────────
+  catChip:             { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#DDD', marginRight: 8, backgroundColor: '#FAFAFA' },
+  catChipActive:       { backgroundColor: '#F4A940', borderColor: '#F4A940' },
+  catChipText:         { fontSize: 13, fontWeight: '600', color: '#555' },
+  catChipTextActive:   { color: '#FFF' },
+
+  // ── Campos lado a lado ─────────────────────────────────────────────────────
+  rowFields:           { flexDirection: 'row' },
+  fieldInputMultiline: { height: 80, textAlignVertical: 'top', paddingTop: 10 },
+
+  imagePreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 14,
+    marginTop: 10,
+    backgroundColor: '#F0EDE8',
+  },
 });

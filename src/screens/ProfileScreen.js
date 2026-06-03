@@ -12,16 +12,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import useSession from '../hooks/useSession';
 import api from '../../service/api';
+import { PetDetailScreen } from './PetDetailScreen';
 
-export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
+export default function ProfileScreen() {
   const { user, logout } = useSession();
   const [profileUser, setProfileUser] = useState(user);
   const [activeSection, setActiveSection] = useState('mypets');
-  const myPets = myPetsFromHome;
+  const [myPets, setMyPets] = useState([]);
   const [myAdoptions, setMyAdoptions] = useState([]);
   const [loadingPets, setLoadingPets] = useState(false);
   const [loadingAdoptions, setLoadingAdoptions] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState(null);
 
   const formatRegistrationDate = (dateString) => {
     if (!dateString) return 'Membro desde recente';
@@ -54,7 +56,9 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
     if (showLoader) setLoadingPets(true);
     try {
       const data = await api.getMyPets();
-      setMyPets(Array.isArray(data) ? data : []);
+      // API pode retornar { pets: [...] } ou diretamente um array
+      const list = Array.isArray(data) ? data : (data?.pets ?? []);
+      setMyPets(list);
     } catch (err) {
       console.error('Erro ao buscar meus pets:', err);
     } finally {
@@ -77,6 +81,7 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
 
   useEffect(() => {
     fetchUserProfile();
+    fetchMyPets().catch(() => {});
     fetchMyAdoptions().catch(() => {});
   }, []);
 
@@ -84,6 +89,7 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
     setRefreshing(true);
     await Promise.all([
       fetchUserProfile(),
+      fetchMyPets(false).catch(() => {}),
       fetchMyAdoptions(false).catch(() => {}),
     ]);
     setRefreshing(false);
@@ -117,6 +123,7 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
   const resolveImage = (pet) => {
     if (Array.isArray(pet.images) && pet.images.length > 0) return pet.images[0];
     if (typeof pet.image === 'string' && pet.image.length > 0) return pet.image;
+    if (pet.category?.image) return pet.category.image;
     return null;
   };
 
@@ -137,7 +144,10 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
     const badge = badgeForStatus(status);
 
     return (
-      <View style={styles.petCard}>
+      <Pressable
+        style={({ pressed }) => [styles.petCard, pressed && { opacity: 0.85 }]}
+        onPress={() => pet._id && setSelectedPetId(pet._id)}
+      >
         {/* Topo */}
         <View style={styles.petInfoTop}>
           <View>
@@ -166,7 +176,7 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
           <Text style={styles.petName}>{pet.name || 'Sem nome'}</Text>
           <Text style={styles.petBreed} numberOfLines={2}>{pet.breed || 'Raça não definida'}</Text>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -249,6 +259,15 @@ export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
 
   const currentList = activeSection === 'mypets' ? myPets : myAdoptions;
   const isLoading   = activeSection === 'mypets' ? loadingPets : loadingAdoptions;
+
+  if (selectedPetId) {
+    return (
+      <PetDetailScreen
+        petId={selectedPetId}
+        onBack={() => setSelectedPetId(null)}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
