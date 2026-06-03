@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -15,7 +15,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import ProfileScreen from './ProfileScreen';
 import { PetDetailScreen } from './PetDetailScreen';
- 
+import useSession from '../hooks/useSession';
+import api from '../../service/api';
+
 const pet_categories = [
   { id: 1, title: 'Dog',   emoji: '🐶', active: false },
   { id: 2, title: 'Cat',   emoji: '🐱', active: true  },
@@ -28,7 +30,6 @@ const INITIAL_PETS = [
     id: 1,
     name: 'Neko',
     breed: 'Scottish Fold · Kitten · Female',
-    distance: '1.8 km away',
     price: '$820',
     image: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?q=80&w=800&auto=format&fit=crop',
     isOwn: false,
@@ -37,7 +38,6 @@ const INITIAL_PETS = [
     id: 2,
     name: 'Milo',
     breed: 'Orange Cat · Male',
-    distance: '2.1 km away',
     price: '$760',
     image: 'https://images.unsplash.com/photo-1511044568932-338cba0ad803?q=80&w=800&auto=format&fit=crop',
     isOwn: false,
@@ -46,20 +46,80 @@ const INITIAL_PETS = [
  
 // ─── Simulated backend ───────────────────────────────────────────────────────
 const fakePostPet = (pet) =>
-  new Promise((resolve) => setTimeout(() => resolve({ ok: true, id: pet.id }), 1400));
+  new Promise((resolve) => setTimeout(() => resolve({ ok: true, id: pet._id }), 1400));
  
 // ─── Empty-form state ─────────────────────────────────────────────────────────
-const EMPTY_FORM = { name: '', breed: '', distance: '', image: '' };
+const EMPTY_FORM = { name: '', breed: '', image: '' };
  
 export function HomeScreen() {
   const [activeTab, setActiveTab]   = useState('home');
+  const { user, logout } = useSession();
+  const [userProfile, setUserProfile] = useState(user);
+  const [searchText, setSearchText] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [pets, setPets]             = useState(INITIAL_PETS);
   const [modalVisible, setModalVisible] = useState(false);
   const [form, setForm]             = useState(EMPTY_FORM);
   const [sending, setSending]       = useState(false);
   const [formError, setFormError]   = useState('');
   const [selectedPetId, setSelectedPetId] = useState(null);
+
+  // ── Filtro por cor ────────────────────────────────────────────────────────
+  const filteredPets = pets.filter((pet) =>
+    pet.color?.toLowerCase().includes(searchText.toLowerCase())
+  );
  
+  const fetchUserProfile = async () => {
+    try {
+      const data = await api.checkUser();
+      if (data) setUserProfile(data);
+    } catch (err) {
+      console.error('Erro ao buscar dados do usuário:', err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try{
+      const data = await api.getCategories();
+      if (data?.categories) {
+        const categoriasFormatadas = data.categories.map((item) => ({
+          id: item._id,
+          title: item.name.charAt(0).toUpperCase() + item.name.slice(1).toLowerCase(),
+          emoji: '🐾',
+          active: false,
+          image: item.image
+        }));
+        
+        setCategories(categoriasFormatadas);
+      }
+    } catch (err) {
+      console.log('erro ao buscar as categorias: ', err);
+    }
+  }
+
+  const handleSelectCategory = (id) => {
+    setSelectedCategoryIds((prevSelected) => {
+      if (prevSelected.includes(id)) {
+        return prevSelected.filter((itemIds) => itemIds !== id);
+      } else {
+        return [...prevSelected, id];
+      }
+    });
+  };
+
+  const fetchPets = async () => {
+    try {
+      const data = await api.getPets();
+      if (data?.pets) {
+        setPets(data.pets);
+      }
+    } 
+    catch (err) {
+      console.log('erro ao buscar os pets: ', err);
+    }
+  }
+
   // ── #22 + #23: add pet form & send to backend ──────────────────────────────
   const handleOpenForm = () => {
     setForm(EMPTY_FORM);
@@ -77,7 +137,6 @@ export function HomeScreen() {
       id: Date.now(),
       name: form.name.trim(),
       breed: form.breed.trim(),
-      distance: form.distance.trim() || 'Distância desconhecida',
       image:
         form.image.trim() ||
         'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?q=80&w=800&auto=format&fit=crop',
@@ -87,7 +146,6 @@ export function HomeScreen() {
     setSending(true);
     setFormError('');
     try {
-      // #23 – enviar novo pet para o backend (simulado)
       await fakePostPet(newPet);
       setPets((prev) => [...prev, newPet]);
       setModalVisible(false);
@@ -100,7 +158,6 @@ export function HomeScreen() {
  
   // ── #24 + #25: remove button & confirmation ────────────────────────────────
   const handleRemovePet = (petId, petName) => {
-    // #25 – confirmar remoção antes de atualizar a lista
     Alert.alert(
       'Remover pet',
       `Tem certeza que deseja remover "${petName}" da lista?`,
@@ -110,7 +167,6 @@ export function HomeScreen() {
           text: 'Remover',
           style: 'destructive',
           onPress: () => {
-            // #25 – atualizar lista após confirmação
             setPets((prev) => prev.filter((p) => p.id !== petId));
           },
         },
@@ -118,11 +174,18 @@ export function HomeScreen() {
     );
   };
  
+  useEffect(() => {
+      fetchUserProfile();
+      fetchCategories();
+      fetchPets();
+      console.log('atualizou !');
+  }, []);
+
   // ── Navegar para detalhe do pet ───────────────────────────────────────────
   if (selectedPetId) {
     return (
       <PetDetailScreen
-        petId={"6750a42fc0f32c7550898d39"}
+        petId={selectedPetId}
         onBack={() => setSelectedPetId(null)}
       />
     );
@@ -137,46 +200,52 @@ export function HomeScreen() {
             {/* Header */}
             <View style={styles.header}>
               <View>
-                <Text style={styles.greeting}>Hi, Justine 👋🏻</Text>
-                <Text style={styles.subtitle}>Good morning</Text>
+                {user.name ? <Text style={styles.greeting}>Olá, {user.name} 👋🏻</Text> : <Text style={styles.greeting}>Hi, User 👋🏻</Text>}
+                <Text style={styles.subtitle}>Aproveite o nosso app</Text>
               </View>
               <Pressable style={styles.notificationButton}>
                 <Ionicons name="notifications-outline" style={styles.notificationIcon} />
               </Pressable>
             </View>
- 
+
             {/* Search */}
             <View style={styles.searchContainer}>
               <View style={styles.searchInputContainer}>
                 <Ionicons name="search" style={styles.searchIcon} />
                 <TextInput
-                  placeholder="Search by breed, size, or name"
+                  placeholder="Filtre pela cor..."
                   placeholderTextColor="#9B9B9B"
                   style={styles.searchInput}
+                  value={searchText}
+                  onChangeText={setSearchText}
                 />
               </View>
-              <Pressable style={styles.filterButton}>
-                <Ionicons name="options-outline" style={styles.filterIcon} />
-              </Pressable>
             </View>
- 
+
             {/* Categories */}
+            <View>
+              <Text style={styles.sectionTitle}>Categorias</Text>
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoriesContainer}
             >
-              {pet_categories.map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={[styles.categoryCard, item.active && styles.categoryCardActive]}
-                >
-                  <Text style={styles.categoryEmoji}>{item.emoji}</Text>
-                  <Text style={[styles.categoryText, item.active && styles.categoryTextActive]}>
-                    {item.title}
-                  </Text>
-                </Pressable>
-              ))}
+              {categories.map((item) => {
+                const isSelected = selectedCategoryIds.includes(item.id);
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => handleSelectCategory(item.id)} 
+                    style={[styles.categoryCard, isSelected && styles.categoryCardActive]} 
+                  >
+                    <Text style={styles.categoryEmoji}>{item.emoji}</Text>
+                    <Text style={[styles.categoryText, isSelected && styles.categoryTextActive]}>
+                      {item.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
  
             {/* Pet Cards */}
@@ -185,35 +254,30 @@ export function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.cardsContainer}
             >
-              {pets.map((pet) => (
+              {filteredPets.map((pet) => (
                 <Pressable
-                  key={pet.id}
+                  key={pet._id ?? pet.id}
                   style={styles.petCard}
-                  onPress={() => setSelectedPetId(String(pet.id))}
+                  onPress={() => setSelectedPetId(pet._id ?? pet.id)}
                 >
- 
                   <View style={styles.petInfoTop}>
                     <View>
-                      <Text style={styles.sectionTitle}>Distance</Text>
-                      <Text style={styles.sectionSubtitle}>{pet.distance}</Text>
-                    </View>
-                    <View>
-                      <Text style={styles.sectionTitle}>Tags</Text>
-                      <Text style={styles.tagText}>Quiet</Text>
-                      <Text style={styles.tagText}>Snuggly</Text>
-                      <Text style={styles.tagText}>Indoor</Text>
+                      <Text style={styles.sectionTitle}>Sobre</Text>
+                      <Text style={styles.tagText}>{pet.color}</Text>
+                      <Text style={styles.tagText}>{pet.age != null ? (pet.age === 1 ? '1 ano' : `${pet.age} anos`) : '—'}</Text>
+                      <Text style={styles.tagText}>{pet.weight} kg</Text>
+                      <Text style={styles.tagText}>{pet.category}</Text>
                     </View>
                   </View>
  
                   <View style={styles.imageWrapper}>
                     <View style={styles.imageBackground} />
-                    <Image source={{ uri: pet.image }} style={styles.petImage} />
+                    <Image source={{ uri: pet.images?.[0] }} style={styles.petImage} />
  
-                    {/* #24 – botão de remover (visível só nos pets do usuário) */}
                     {pet.isOwn && (
                       <Pressable
                         style={styles.removeButton}
-                        onPress={() => handleRemovePet(pet.id, pet.name)}
+                        onPress={() => handleRemovePet(pet._id ?? pet.id, pet.name)}
                       >
                         <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
                       </Pressable>
@@ -248,8 +312,6 @@ export function HomeScreen() {
         <View style={styles.bottomNavigation}>
           {[
             { key: 'home',      icon: 'home-outline' },
-            { key: 'favorites', icon: 'heart-outline' },
-            { key: 'messages',  icon: 'chatbubble-ellipses-outline' },
             { key: 'profile',   icon: 'person-outline' },
           ].map(({ key, icon }) => (
             <Pressable
@@ -287,7 +349,6 @@ export function HomeScreen() {
               {[
                 { field: 'name',     label: 'Nome *',            placeholder: 'Ex: Luna' },
                 { field: 'breed',    label: 'Raça / detalhes *', placeholder: 'Ex: Persa · Adulto · Fêmea' },
-                { field: 'distance', label: 'Distância',         placeholder: 'Ex: 0.5 km away' },
                 { field: 'image',    label: 'URL da imagem',     placeholder: 'https://...' },
               ].map(({ field, label, placeholder }) => (
                 <View key={field} style={styles.fieldGroup}>
@@ -305,7 +366,6 @@ export function HomeScreen() {
  
               {!!formError && <Text style={styles.formError}>{formError}</Text>}
  
-              {/* #23 – botão que envia ao backend */}
               <Pressable
                 style={[styles.submitButton, sending && styles.submitButtonDisabled]}
                 onPress={handleSubmitPet}
@@ -347,7 +407,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: '#1F1F1F', fontSize: 16 },
   filterButton: { width: 50, height: 50, borderRadius: 90, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EFEFEF', justifyContent: 'center', alignItems: 'center' },
   filterIcon: { fontSize: 24 },
- 
+  
   // ── Categories ────────────────────────────────────────────────────────────
   categoriesContainer: { paddingBottom: 16 },
   categoryCard: { width: 82, height: 110, borderRadius: 60, backgroundColor: '#F7F7F7', marginRight: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#EFEFEF' },
@@ -368,7 +428,6 @@ const styles = StyleSheet.create({
   imageBackground: { position: 'absolute', width: 220, height: 300, backgroundColor: '#F4A940', borderTopLeftRadius: 160, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, right: 0, bottom: 0 },
   petImage: { position: 'absolute', right: 5, bottom: 5, width: 210, height: 290, borderTopLeftRadius: 160, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, resizeMode: 'cover' },
  
-  // #24 – botão de remover sobre a imagem
   removeButton: {
     position: 'absolute',
     top: 8,
@@ -387,7 +446,6 @@ const styles = StyleSheet.create({
   petBreed: { marginTop: 4, fontSize: 12, color: '#8B8B8B', maxWidth: 160 },
   petPrice: { fontSize: 24, fontWeight: '400', color: '#FFFFFF' },
  
-  // #22 – card "Adicionar meu pet"
   addCard: {
     width: 160,
     borderRadius: 32,
@@ -433,7 +491,6 @@ const styles = StyleSheet.create({
   fieldInput: { height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: '#EEEEEE', paddingHorizontal: 14, fontSize: 15, color: '#1F1F1F', backgroundColor: '#FAFAFA' },
   formError: { color: '#E53935', fontSize: 13, marginBottom: 12, textAlign: 'center' },
  
-  // #23 – botão de envio
   submitButton: {
     height: 54,
     borderRadius: 90,

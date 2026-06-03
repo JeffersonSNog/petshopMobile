@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useSession from '../hooks/useSession';
-import api from '../../utils/api';
+import api from '../../service/api';
 
 export default function ProfileScreen({ myPets: myPetsFromHome = [] }) {
   const { user, logout } = useSession();

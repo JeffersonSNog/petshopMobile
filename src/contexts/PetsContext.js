@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useMemo } from 'react';
-import api from '../../utils/api';
+import api from '../../service/api';
 
 export const PetsContext = createContext(null);
 

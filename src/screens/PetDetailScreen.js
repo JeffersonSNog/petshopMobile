@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 
-import api from '../../utils/api';
+import api from '../../service/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_HEIGHT = 300;
@@ -55,6 +55,7 @@ export function PetDetailScreen({ petId, onBack }) {
     setLoading(true);
     setError(null);
     try {
+      console.log('Tentando buscar pet com id ' + petId);
       const response = await fetch(`https://petadopt.onrender.com/pet/${petId}`);
       const data = await response.json();
       if (!response.ok) {
